@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html><head><title>Onyx Admin</title></head>
+<body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh">
+<div style="backdrop-filter:blur(30px);background:rgba(33,150,243,0.15);padding:40px;border-radius:24px;border:1px solid rgba(255,255,255,0.2)">
+<h2>ONYX ADMIN - Liquid Glass</h2>
+<input id="email" placeholder="Email" style="padding:12px;width:100%;margin:10px 0">
+<button onclick="login()" style="padding:12px 24px;background:#2196F3;border:none;color:white;border-radius:12px;width:100%">Login</button>
+<p id="msg"></p>
+</div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import {getAuth, signInWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+const app=initializeApp({apiKey:"YOUR_KEY",authDomain:"onyx-movies-2b58b.firebaseapp.com",projectId:"onyx-movies-2b58b"});
+const auth=getAuth();
+window.login=async()=>{
+  const email=document.getElementById('email').value;
+  if(email!=='mugabibenjamin14@gmail.com' && email!=='rachetyaz900@gmail.com'){document.getElementById('msg').innerText='Access Denied';return;}
+  alert('Allowed Admin: '+email+' - Upload panel ready');
+}
+</script>
+</body></html>
