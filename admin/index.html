@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Onyx Movies - Admin</title>
+<style>
+body{margin:0;background:radial-gradient(circle at top,#0a1a2f,#000);color:#fff;font-family:-apple-system,sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+.glass{backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);background:rgba(33,150,243,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:24px;padding:30px;width:100%;max-width:500px;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+input,textarea,select{width:100%;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.4);color:#fff;outline:none;margin-top:12px;font-size:14px;box-sizing:border-box}
+button{width:100%;padding:14px;margin-top:16px;border-radius:12px;border:none;background:#2196F3;color:#fff;font-weight:bold;cursor:pointer}
+button:hover{background:#1976D2}
+.hidden{display:none}
+label{font-size:13px;opacity:0.8;margin-top:16px;display:block}
+#moviesList{margin-top:20px;max-height:200px;overflow-y:auto}
+.movieItem{background:rgba(0,0,0,0.3);padding:10px;border-radius:10px;margin-top:8px;font-size:13px;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="glass" id="loginBox">
+<h2 style="text-align:center;margin:0">ONYX ADMIN</h2>
+<p style="text-align:center;opacity:0.7;font-size:13px">iOS 26 Liquid Glass Premium</p>
+<input type="email" id="email" placeholder="Admin Email">
+<input type="password" id="pass" placeholder="Password">
+<button onclick="login()">LOGIN</button>
+<p id="loginMsg" style="text-align:center;margin-top:10px"></p>
+</div>
+
+<div class="glass hidden" id="adminBox">
+<h2 style="margin:0">Upload Movie / Series</h2>
+<p style="opacity:0.7;font-size:12px" id="welcome"></p>
+<label>Title</label>
+<input type="text" id="title" placeholder="e.g. The Batman 2025">
+<label>Description</label>
+<textarea id="desc" rows="3" placeholder="Movie description..."></textarea>
+<label>Poster Image URL (or direct upload link)</label>
+<input type="text" id="poster" placeholder="https://...jpg">
+<label>Video URL (Firebase Storage / direct mp4 link)</label>
+<input type="text" id="videoUrl" placeholder="https://...mp4">
+<label>Category</label>
+<select id="category"><option>Movies</option><option>Series</option><option>Trending</option><option>New Release</option></select>
+<label>App Version for Auto-Update (optional)</label>
+<input type="text" id="appVersion" placeholder="e.g. 1.0.1">
+<button onclick="uploadMovie()" id="uploadBtn">🚀 UPLOAD TO FIREBASE</button>
+<button onclick="updateVersion()" style="background:rgba(255,255,255,0.1);margin-top:8px">Update App Version</button>
+<p id="msg"></p>
+<div id="moviesList"></div>
+<button onclick="logout()" style="background:rgba(255,0,0,0.3);margin-top:20px">Logout</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const allowed = ['mugabibenjamin14@gmail.com','rachetyaz900@gmail.com'];
+
+window.login = async () => {
+  const email = document.getElementById('email').value.trim();
+  const pass = document.getElementById('pass').value;
+  const msg = document.getElementById('loginMsg');
+  if(!allowed.includes(email.toLowerCase())){ msg.style.color='#FF5252'; msg.innerText='❌ Not an admin'; return; }
+  try{ await signInWithEmailAndPassword(auth,email,pass); }catch(e){ msg.innerText='❌ '+e.message; }
+};
+
+onAuthStateChanged(auth, async (user)=>{
+  if(user && allowed.includes(user.email.toLowerCase())){
+    document.getElementById('loginBox').classList.add('hidden');
+    document.getElementById('adminBox').classList.remove('hidden');
+    document.getElementById('welcome').innerText='Welcome: '+user.email;
+    loadMovies();
+  }else{
+    document.getElementById('loginBox').classList.remove('hidden');
+    document.getElementById('adminBox').classList.add('hidden');
+  }
+});
+
+window.uploadMovie = async () => {
+  const btn = document.getElementById('uploadBtn');
+  const msg = document.getElementById('msg');
+  btn.innerText='Uploading...'; btn.disabled=true;
+  try{
+    await addDoc(collection(db,'movies'),{
+      title: document.getElementById('title').value,
+      description: document.getElementById('desc').value,
+      poster: document.getElementById('poster').value,
+      videoUrl: document.getElementById('videoUrl').value,
+      category: document.getElementById('category').value,
+      createdAt: serverTimestamp(),
+      views: 0
+    });
+    msg.style.color='#4CAF50'; msg.innerText='✅ Movie Uploaded! Will show in User App instantly';
+    document.getElementById('title').value=''; document.getElementById('desc').value=''; document.getElementById('poster').value=''; document.getElementById('videoUrl').value='';
+    loadMovies();
+  }catch(e){ msg.style.color='#FF5252'; msg.innerText='❌ '+e.message; }
+  btn.innerText='🚀 UPLOAD TO FIREBASE'; btn.disabled=false;
+};
+
+window.updateVersion = async () => {
+  const v = document.getElementById('appVersion').value;
+  if(!v) return alert('Enter version');
+  await setDoc(doc(db,'app_config','update'),{version:v, updatedAt: serverTimestamp()});
+  document.getElementById('msg').innerText='✅ App version updated to '+v+' - Users will get auto-update popup';
+};
+
+async function loadMovies(){
+  const snap = await getDocs(collection(db,'movies'));
+  const list = document.getElementById('moviesList');
+  list.innerHTML='<b>Recent Uploads:</b>';
+  snap.forEach(d=>{ const m=d.data(); list.innerHTML+=`<div class="movieItem"><span>${m.title}</span><span>${m.category}</span></div>` });
+}
+window.logout=()=>signOut(auth);
+</script>
+</body>
+</html>
