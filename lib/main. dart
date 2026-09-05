@@ -1,0 +1,13 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: Scaffold(
+      backgroundColor: Color(0xFF0A0A0A),
+      body: Center(
+        child: Text('ONYX MOVIES', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+      ),
+    ),
+  ));
+}
