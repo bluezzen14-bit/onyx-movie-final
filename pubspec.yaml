@@ -1,0 +1,35 @@
+name: onyx_movie_final
+description: ONYX MOVIES - iOS 26 Liquid Glass Sky Blue - Firebase Linked User & Admin Panel
+publish_to: 'none'
+version: 1.0.5+7
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  shared_preferences: ^2.3.2
+  url_launcher: ^6.2.5
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  firebase_database: ^10.4.0
+  cloud_firestore: ^4.15.5
+  firebase_storage: ^11.6.0
+  video_player: ^2.8.2
+  chewie: ^1.8.1
+  path_provider: ^2.1.2
+  dio: ^5.4.1
+  share_plus: ^7.2.2
+  local_auth: ^2.1.7
+  http: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
