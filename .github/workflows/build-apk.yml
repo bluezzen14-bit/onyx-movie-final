@@ -1,0 +1,45 @@
+name: build
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.2'
+          channel: 'stable'
+
+      - name: Fix Gradle - Recreate Android Project
+        run: |
+          rm -rf android
+          flutter create . --platforms=android --project-name onyx_movie_final
+          flutter pub get
+
+      - name: Fix invisible WhatsApp chars - Auto clean
+        run: |
+          echo "Cleaning lib/main.dart from WhatsApp invisible chars..."
+          # Remove U+200E, U+200B, U+202A, U+202C, U+202B and carriage returns
+          sed -i 's/\xE2\x80\x8E//g; s/\xE2\x80\x8B//g; s/\xE2\x80\xAA//g; s/\xE2\x80\xAC//g; s/\xE2\x80\xAB//g; s/\r//g' lib/main.dart || true
+          # Replace bullet and fancy dashes that also break
+          sed -i 's/•/*/g; s/–/-/g; s/—/-/g' lib/main.dart || true
+          echo "Cleaned file size: $(wc -c < lib/main.dart) bytes"
+          echo "First 5 lines after clean:"
+          head -5 lib/main.dart
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onyx_movie_final-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
