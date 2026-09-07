@@ -1,0 +1,14 @@
+{
+  "latest_version": "1.0.7+15",
+  "version_code": 15,
+  "version_name": "1.0.7",
+  "whats_new": "FIXED: Auto-login permanent (never logout), Firebase internet sync - movies appear instantly on user panel, Update opens browser to download APK, Large files & Gallery support",
+  "apk_url": "https://github.com/bluezzer/onyx-movie-final/releases/latest/download/app-release.apk",
+  "fallback_url": "https://github.com/bluezzer/onyx-movie-final/releases/latest",
+  "force_update": false,
+  "min_version": "1.0.5",
+  "release_date": "2026-05-13",
+  "build_number": 190,
+  "status": "GREEN",
+  "changelog": "1. Auto-login fixed with registered_email_permanent 2. Firebase keepSynced true 3. Profile update opens browser not stuck 50% 4. Admin upload appears with internet instantly"
+}
