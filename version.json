@@ -1,0 +1,12 @@
+{
+  "latest_version": "1.0.7+15",
+  "version_code": 15,
+  "version_name": "1.0.7",
+  "whats_new": "FIXED 3 BUGS: Auto-login permanent, Firebase internet sync movies appear instantly, Update opens browser - Admin v2.1",
+  "apk_url": "https://github.com/bluezzer/onyx-movie-final/releases/latest/download/app-release.apk",
+  "force_update": false,
+  "min_version": "1.0.6",
+  "release_date": "2026-05-13",
+  "build_number": 179,
+  "status": "GREEN"
+}
