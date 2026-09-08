@@ -1,0 +1,61 @@
+name: build
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: 'stable'
+
+      - name: Fix Gradle - Recreate with SDK 35 patch
+        run: |
+          echo "Backing up google-services.json..."
+          cp android/app/google-services.json /tmp/google-services.json || echo "No google file"
+          
+          rm -rf android
+          flutter create . --platforms=android --project-name onyx_movies
+          
+          cp /tmp/google-services.json android/app/google-services.json || echo "Add google-services.json manually to android/app/"
+          chmod +x android/gradlew
+          
+          echo "Patching to SDK 35..."
+          sed -i 's/compileSdkVersion 34/compileSdkVersion 35/g' android/app/build.gradle || true
+          sed -i 's/compileSdk 34/compileSdk 35/g' android/app/build.gradle || true
+          sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/g' android/app/build.gradle || true
+          sed -i 's/targetSdkVersion 34/targetSdkVersion 35/g' android/app/build.gradle || true
+          sed -i 's/targetSdk 34/targetSdk 35/g' android/app/build.gradle || true
+          sed -i 's/flutter.compileSdkVersion/flutter.compileSdkVersion/g' android/app/build.gradle || true
+          
+          # Also patch local.properties for SDK 35
+          echo "flutter.compileSdkVersion=35" >> android/local.properties || true
+          echo "flutter.targetSdkVersion=35" >> android/local.properties || true
+
+      - name: Clean WhatsApp chars
+        run: |
+          sed -i 's/\xE2\x80\x8E//g; s/\xE2\x80\x8B//g; s/\xE2\x80\xAA//g; s/\xE2\x80\xAC//g; s/\xE2\x80\xAB//g; s/\r//g' lib/main.dart || true
+
+      - name: Get dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onyx_movie_final-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
