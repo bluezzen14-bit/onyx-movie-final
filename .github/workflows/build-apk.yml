@@ -1,0 +1,105 @@
+name: build
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter 3.22.3
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.3'
+          channel: 'stable'
+
+      - name: Fix Android Project + Permanent Keystore
+        run: |
+          echo "Backing up files..."
+          cp android/app/google-services.json /tmp/g.json 2>/dev/null || echo "no g.json"
+          cp android/app/upload-keystore.jks /tmp/mykey.jks 2>/dev/null || echo "no old keystore"
+          cp android/key.properties /tmp/key.properties 2>/dev/null || echo "no key.properties"
+          
+          echo "Recreating android folder..."
+          rm -rf android
+          flutter create . --platforms=android --project-name onyx_movies --org com.onyxmovies
+          chmod +x android/gradlew
+          
+          echo "Restoring google-services.json..."
+          cp /tmp/g.json android/app/google-services.json 2>/dev/null || echo "no g.json backup"
+          
+          if [ -f /tmp/mykey.jks ]; then
+            echo "Found OLD keystore - reusing it (SHA1 stays same)"
+            cp /tmp/mykey.jks android/app/upload-keystore.jks
+            cp /tmp/key.properties android/key.properties 2>/dev/null || true
+          else
+            echo "No keystore found - Creating FIRST permanent keystore..."
+            keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -storepass onyx123 -keypass onyx123 -alias upload -dname "CN=Onyx Movies, OU=Dev, O=Onyx, L=Kampala, S=Central, C=UG"
+            echo "storePassword=onyx123" > android/key.properties
+            echo "keyPassword=onyx123" >> android/key.properties
+            echo "keyAlias=upload" >> android/key.properties
+            echo "storeFile=upload-keystore.jks" >> android/key.properties
+          fi
+          
+          echo ""
+          echo "=============================="
+          echo "YOUR PERMANENT SHA1/SHA256"
+          echo "ADD THIS TO FIREBASE NOW"
+          echo "=============================="
+          keytool -list -v -keystore android/app/upload-keystore.jks -alias upload -storepass onyx123 | grep -E "SHA1|SHA256"
+          echo "=============================="
+
+      - name: Configure Release Signing
+        run: |
+          cat > /tmp/fix.py << 'PY'
+          import pathlib
+          p = pathlib.Path("android/app/build.gradle")
+          s = p.read_text()
+          if "keystoreProperties" not in s:
+              s = s.replace("android {", "def keystoreProperties = new Properties()\ndef keystorePropertiesFile = rootProject.file('key.properties')\nif (keystorePropertiesFile.exists()) {\n    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n}\n\nandroid {")
+          if "signingConfigs" not in s:
+              s = s.replace("buildTypes {", "    signingConfigs {\n        release {\n            keyAlias keystoreProperties['keyAlias']\n            keyPassword keystoreProperties['keyPassword']\n            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null\n            storePassword keystoreProperties['storePassword']\n        }\n    }\n    buildTypes {")
+          s = s.replace("signingConfig signingConfigs.debug", "signingConfig signingConfigs.release")
+          # For release type
+          if "signingConfigs.release" not in s:
+              s = s.replace("release {\n            signingConfig", "release {\n            // TODO: Add your own signing config for the release build.\n            // Signing with the debug keys for now, so `flutter run --release` works.\n            signingConfig signingConfigs.release\n            // signingConfig")
+          p.write_text(s)
+          print("build.gradle fixed")
+          PY
+          python3 /tmp/fix.py
+          cat android/app/build.gradle | grep -A5 signingConfigs
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Show Final Signing Report
+        run: |
+          cd android
+          ./gradlew signingReport
+
+      - name: Build APK Release
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: onyx-movies-apk-permanent
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload Keystore - SAVE THIS!
+        uses: actions/upload-artifact@v4
+        with:
+          name: PERMANENT-keystore-and-properties-BACKUP
+          path: |
+            android/app/upload-keystore.jks
+            android/key.properties
